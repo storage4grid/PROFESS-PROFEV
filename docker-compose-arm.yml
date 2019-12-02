@@ -1,0 +1,136 @@
+version: '3.2'
+services:
+  glpk:
+    build:
+      context: ""
+      dockerfile: docker-arm/Glpk/Dockerfile
+    image: garagon/glpk:arm_resin
+  #  #command: /bin/bash
+  #  restart: always
+  #  #command: ["cat","/etc/ld.so.conf"]
+  #  volumes:
+  #    - volume-glpsol:/usr/local/bin
+  #    #- volume-glpsol:/user/local/glpk-4.57
+  #    - volume-glpk:/usr/local/lib
+      #- /var/run/docker.sock:/docker.sock
+    #pid: host
+    #environment:
+    #    - run_mode=batch,daemon
+    #    - host_routes=true
+    #    - route_add_delay=1
+     # - /usr/src/app:/usr/src/app/glpk
+      #- type: bind
+      #  source: /usr/src/app/glpk
+      #  target: /usr/bin/glpsol
+    #restart: unless-stopped
+
+  ipopt:
+    build:
+      context: ""
+      dockerfile: docker-arm/Ipopt/Dockerfile
+    image: garagon/ipopt:arm_resin
+
+  solver:
+    build:
+      context: ""
+      dockerfile: docker-arm/Solver/Dockerfile
+    image: garagon/solvers:arm_resin
+ # bonmin:
+ #   build:
+ #     context: ""
+ #     dockerfile: docker/Bonmin/Dockerfile
+ #   image: garagon/bonmin:V0.1
+  # mosquitto:
+  #  image: pascaldevink/rpi-mosquitto
+    #image: openenergy/rpi-mosquitto
+  #  ports:
+  #    - "1883:1883"
+  #  container_name: "mosquito_S4G"
+  #zeromq:
+   # image: zeromq/zeromq
+    #ports:
+     # - 5555:5555
+  #pyro:
+  #  image: farshidtz/pyro4-ns
+  #  command: ["--host=pyro-ns"]
+  redis:
+    image: redis:latest
+    container_name: "redis_S4G"
+    command: redis-server
+    ports:
+      - "6379:6379"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+  ofw:
+    build:
+      context: ""
+      dockerfile: Dockerfile-arm
+     # ../docker/App/Dockerfile
+    image: garagon/optimization:arm
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    volumes:
+      - ../optimization-framework/prediction/resources:/usr/src/app/prediction/resources
+      - ../optimization-framework/optimization/resources:/usr/src/app/optimization/resources
+      - ../optimization-framework/utils/resources:/usr/src/app/utils/resources
+      - ../optimization-framework/logs:/usr/src/app/logs
+      - ../optimization-framework/logs/pyomo:/usr/src/app/logs/pyomo
+      - ../optimization-framework/utils/gurobi/license:/usr/src/app/share/gurobi811/license
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    command: ["python3", "-u", "ofw.py"]
+    #command: ["ls","/usr/bin"]
+  mock:
+    build:
+      context: ""
+      dockerfile: mock_data/docker/Dockerfile-mock-arm
+    image: garagon/optimization:arm_mock
+    volumes:
+      - ../optimization-framework/mock_data/resources:/usr/src/app/mock_data/resources
+     # ../docker/App/Dockerfile
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    command: ["python3", "-u", "mockdata.py"]
+  ml:
+    build:
+      context: ""
+      dockerfile: prediction/docker/Dockerfile-arm
+    image: garagon/optimization:arm_training
+    depends_on:
+      - redis
+    volumes:
+      - ../optimization-framework/prediction/resources:/usr/src/app/prediction/resources
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    command: ["python3", "-u", "mlTraining.py"]
+  connector:
+    build:
+      context: ""
+      dockerfile: connector/docker/Dockerfile-arm
+    image: garagon/optimization:arm_connector
+    volumes:
+      - ../optimization-framework/connector/resources/:/usr/src/app/connector/resources
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    command: ["python3", "-u", "connectors.py"]
+
+volumes:
+  volume-glpsol:
+  volume-glpk:

@@ -1,0 +1,10 @@
+pandas
+requests
+pyomo
+sh
+Pyro4
+numpy
+sklearn
+connexion
+paho-mqtt
+pyzmq
